@@ -15,6 +15,7 @@ import org.bukkit.command.SimpleCommandMap;
 import org.bukkit.craftbukkit.v1_4_R1.CraftServer;
 import org.bukkit.craftbukkit.v1_4_R1.help.SimpleHelpMap;
 import org.bukkit.plugin.Plugin;
+import org.cyberiantiger.minecraft.easyscript.EasyScript;
 
 /**
  *
@@ -22,32 +23,44 @@ import org.bukkit.plugin.Plugin;
  */
 public class CommandRegistration147 implements CommandRegistration {
 
-    public CommandRegistration147() throws ClassNotFoundException {
-        Class.forName("org.bukkit.craftbukkit.v1_4_R1.CraftServer");
+    public CommandRegistration147() {
+        try {
+        	Class.forName("org.bukkit.craftbukkit.v1_4_R1.CraftServer");
+        } catch (ClassNotFoundException e) {
+            EasyScript.reflectionError("CommandRegistration147", "Versioning Error, Expecting CraftServer.v1_4_R1", e);
+        }
     }
 
     public PluginCommand registerCommand(Plugin plugin, String command) {
-        // Very Dirty Hack.
-        try {
-            Constructor<PluginCommand> cons = PluginCommand.class.getDeclaredConstructor(String.class, Plugin.class);
-            cons.setAccessible(true);
-            PluginCommand ret = cons.newInstance(command, plugin);
+        // XXX Very Dirty Hack.
+            Constructor<PluginCommand> cons;
+            PluginCommand ret;
+			try {
+				cons = PluginCommand.class.getDeclaredConstructor(String.class, Plugin.class);
+	            cons.setAccessible(true);
+	            ret = cons.newInstance(command, plugin);
+			} catch (NoSuchMethodException e) {
+	            EasyScript.reflectionError("CommandRegistration147", "Can't find constructor PluginCommand(String, Plugin)", e);
+				return null;
+			} catch (SecurityException e) {
+	            EasyScript.reflectionError("CommandRegistration147", "Can't find constructor PluginCommand(String, Plugin)", e);
+				return null;
+			} catch (InstantiationException e) {
+	            EasyScript.reflectionError("CommandRegistration147", "Can't run constructor PluginCommand(String, Plugin)", e);
+				return null;
+			} catch (IllegalAccessException e) {
+	            EasyScript.reflectionError("CommandRegistration147", "Can't run constructor PluginCommand(String, Plugin)", e);
+				return null;
+			} catch (IllegalArgumentException e) {
+	            EasyScript.reflectionError("CommandRegistration147", "Can't run constructor PluginCommand(String, Plugin)", e);
+				return null;
+			} catch (InvocationTargetException e) {
+	            EasyScript.reflectionError("CommandRegistration147", "Exception during constructor PluginCommand(String, Plugin)", e);
+				return null;
+			}
             CommandMap map = ((CraftServer) plugin.getServer()).getCommandMap();
             map.register("easyscript", ret);
             return ret;
-        } catch (NoSuchMethodException ex) {
-            return null;
-        } catch (SecurityException ex) {
-            return null;
-        } catch (InstantiationException ex) {
-            return null;
-        } catch (IllegalAccessException ex) {
-            return null;
-        } catch (IllegalArgumentException ex) {
-            return null;
-        } catch (InvocationTargetException ex) {
-            return null;
-        }
     }
 
     public void unregisterCommand(Server server, PluginCommand command) {

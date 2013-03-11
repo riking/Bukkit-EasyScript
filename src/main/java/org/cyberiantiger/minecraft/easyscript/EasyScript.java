@@ -34,13 +34,15 @@ import org.bukkit.plugin.EventExecutor;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.cyberiantiger.minecraft.easyscript.unsafe.CommandRegistration;
 import org.cyberiantiger.minecraft.easyscript.unsafe.CommandRegistrationFactory;
+import org.cyberiantiger.minecraft.easyscript.unsafe.EventRegistrationFactory;
 
 public class EasyScript extends JavaPlugin implements Listener {
 
     private static final CommandRegistration registration =
             CommandRegistrationFactory.createCommandRegistration();
+    private static EventRegistrationFactory eventfactory = EventRegistrationFactory.createEventRegistrationFactory();
     private ScriptEngine engine;
-    private Invocable invocable;
+    public Invocable invocable;
     private Compilable compilable;
     private ScriptContext engineContext;
     private boolean autoreload;
@@ -48,6 +50,7 @@ public class EasyScript extends JavaPlugin implements Listener {
     private Map<String, ScriptHolder> scripts;
     private List<File> scriptDirectories;
     private Map<String, PluginCommand> scriptCommands;
+    public static EasyScript instance;
 
     public EasyScript() {
         this.libraries = new HashMap<File, Long>();
@@ -59,6 +62,7 @@ public class EasyScript extends JavaPlugin implements Listener {
     @Override
     public void onEnable() {
         super.onEnable();
+        instance = this;
         ClassLoader oldClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(EasyScript.class.getClassLoader());
@@ -141,6 +145,7 @@ public class EasyScript extends JavaPlugin implements Listener {
     @Override
     public void onDisable() {
         super.onDisable();
+        instance = null;
         this.engine = null;
         this.invocable = null;
         this.compilable = null;
@@ -157,6 +162,7 @@ public class EasyScript extends JavaPlugin implements Listener {
             // Ignored
         }
         scriptCommands.clear();
+        eventfactory.unregisterAllEvents();
     }
 
     /**
@@ -213,7 +219,7 @@ public class EasyScript extends JavaPlugin implements Listener {
      * @param function The function to call to handle this event.
      */
     public void registerEvent(Class<? extends Event> eventClass, String function) {
-        registerEvent(eventClass, EventPriority.NORMAL, function);
+    	eventfactory.registerEvent(eventClass, function);
     }
 
     /**
@@ -226,7 +232,7 @@ public class EasyScript extends JavaPlugin implements Listener {
      * @param function The function to call to handle this event.
      */
     public void registerEvent(Class<? extends Event> eventClass, EventPriority priority, String function) {
-        registerEvent(eventClass, priority, true, function);
+    	eventfactory.registerEvent(eventClass, priority, function);
     }
 
     /**
@@ -238,27 +244,10 @@ public class EasyScript extends JavaPlugin implements Listener {
      * @param function The function to call to handle this event.
      */
     public void registerEvent(Class<? extends Event> eventClass, EventPriority priority, boolean ignoreCancelled, final String function) {
-        getServer().getPluginManager().registerEvent(eventClass, this, priority, new EventExecutor() {
-
-            public void execute(Listener ll, Event event) throws EventException {
-                if (!isEnabled()) {
-                    return;
-                }
-                if (!checkLibraries()) {
-                    return;
-                }
-                try {
-                    EasyScript.this.invocable.invokeFunction(function, new Object[]{event});
-                } catch (ScriptException ex) {
-                    EasyScript.this.getLogger().log(Level.WARNING, "Error handling event: " + ex.getMessage());
-                } catch (NoSuchMethodException ex) {
-                    EasyScript.this.getLogger().log(Level.WARNING, "Library non-existent registered event handler function: " + function);
-                }
-            }
-        }, this, ignoreCancelled);
+    	eventfactory.registerEvent(eventClass, priority, ignoreCancelled, function);
     }
 
-    private boolean checkLibraries() {
+    public boolean checkLibraries() {
         if (!this.autoreload) {
             return true;
         }
@@ -351,6 +340,18 @@ public class EasyScript extends JavaPlugin implements Listener {
             return true;
         }
         return false;
+    }
+    
+    /**
+     * Shut down everything, send a message to the server, and disable the plugin.
+     * Call when an error occurs in reflection.
+     */
+    public static void reflectionError(String reflclass, String reflmethod, Throwable cause) {
+    	RuntimeException tmp = new RuntimeException("(EasyScript) Reflection failed, please check for updates", cause);
+    	instance.getLogger().throwing(reflclass, reflmethod, tmp);
+    	instance.getServer().broadcastMessage("&dEasyScript ERROR - Reflection failed, please check for updates");
+    	instance.getServer().getPluginManager().disablePlugin(instance);
+    	throw tmp;
     }
 
     private class LogWriter extends Writer {

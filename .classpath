@@ -13,5 +13,7 @@
 	</classpathentry>
 	<classpathentry kind="lib" path="/home/kane/.m2/repository/org/bukkit/craftbukkit/1.4.7-R1.0/craftbukkit-1.4.7-R1.0.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/bukkit"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/CraftBukkit"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
